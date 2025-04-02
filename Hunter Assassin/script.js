@@ -1,207 +1,136 @@
-var ctx = myCanvas.getContext('2d');
-var FPS = 40;
-var jump_amount = -10;
-var max_fall_speed = +10;
-var acceleration = 1;
-var pipe_speed = -2;
-var game_mode = 'prestart';
-var time_game_last_running;
-var bottom_bar_offset = 0;
-var pipes = [];
+// Get the canvas element
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
 
-function MySprite(img_url) {
-  this.x = 0;
-  this.y = 0;
-  this.visible = true;
-  this.velocity_x = 0;
-  this.velocity_y = 0;
-  this.MyImg = new Image();
-  this.MyImg.src = img_url || '';
-  this.angle = 0;
-  this.flipV = false;
-  this.flipH = false;
-}
-MySprite.prototype.Do_Frame_Things = function () {
-  ctx.save();
-  ctx.translate(this.x + this.MyImg.width / 2, this.y + this.MyImg.height / 2);
-  ctx.rotate((this.angle * Math.PI) / 180);
-  if (this.flipV) ctx.scale(1, -1);
-  if (this.flipH) ctx.scale(-1, 1);
-  if (this.visible)
-    ctx.drawImage(this.MyImg, -this.MyImg.width / 2, -this.MyImg.height / 2);
-  this.x = this.x + this.velocity_x;
-  this.y = this.y + this.velocity_y;
-  ctx.restore();
-};
-function ImagesTouching(thing1, thing2) {
-  if (!thing1.visible || !thing2.visible) return false;
-  if (
-    thing1.x >= thing2.x + thing2.MyImg.width ||
-    thing1.x + thing1.MyImg.width <= thing2.x
-  )
-    return false;
-  if (
-    thing1.y >= thing2.y + thing2.MyImg.height ||
-    thing1.y + thing1.MyImg.height <= thing2.y
-  )
-    return false;
-  return true;
-}
-function Got_Player_Input(MyEvent) {
-  switch (game_mode) {
-    case 'prestart': {
-      game_mode = 'running';
-      break;
+// Define player and enemy objects
+class Player {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.width = 50;
+        this.height = 50;
     }
-    case 'running': {
-      bird.velocity_y = jump_amount;
-      break;
+
+    draw() {
+        ctx.fillStyle = 'blue';
+        ctx.fillRect(this.x, this.y, this.width, this.height);
     }
-    case 'over':
-      if (new Date() - time_game_last_running > 1000) {
-        reset_game();
-        game_mode = 'running';
-        break;
-      }
-  }
-  MyEvent.preventDefault();
-}
-addEventListener('touchstart', Got_Player_Input);
-addEventListener('mousedown', Got_Player_Input);
-addEventListener('keydown', Got_Player_Input);
-function make_bird_slow_and_fall() {
-  if (bird.velocity_y < max_fall_speed) {
-    bird.velocity_y = bird.velocity_y + acceleration;
-  }
-  if (bird.y > myCanvas.height - bird.MyImg.height) {
-    bird.velocity_y = 0;
-    game_mode = 'over';
-  }
-  if (bird.y < 0 - bird.MyImg.height) {
-    bird.velocity_y = 0;
-    game_mode = 'over';
-  }
 }
 
-function add_pipe(x_pos, top_of_gap, gap_width) {
-  var top_pipe = new MySprite();
-  top_pipe.MyImg = pipe_piece;
-  top_pipe.x = x_pos;
-  top_pipe.y = top_of_gap - pipe_piece.height;
-  top_pipe.velocity_x = pipe_speed;
-  pipes.push(top_pipe);
-  var bottom_pipe = new MySprite();
-  bottom_pipe.MyImg = pipe_piece;
-  bottom_pipe.flipV = true;
-  bottom_pipe.x = x_pos;
-  bottom_pipe.y = top_of_gap + gap_width;
-  bottom_pipe.velocity_x = pipe_speed;
-  pipes.push(bottom_pipe);
-}
-function make_bird_tilt_appropriately() {
-  if (bird.velocity_y < 0) {
-    bird.angle = -15;
-  } else if (bird.angle < 70) {
-    bird.angle = bird.angle + 4;
-  }
-}
-function show_the_pipes() {
-  for (var i = 0; i < pipes.length; i++) {
-    pipes[i].Do_Frame_Things();
-  }
-}
-function check_for_end_game() {
-  for (var i = 0; i < pipes.length; i++)
-    if (ImagesTouching(bird, pipes[i])) game_mode = 'over';
-}
-function display_intro_instructions() {
-  ctx.font = '25px Arial';
-  ctx.fillStyle = 'red';
-  ctx.textAlign = 'center';
-  ctx.fillText(
-    'Press, touch or click to start',
-    myCanvas.width / 2,
-    myCanvas.height / 4
-  );
-}
-function display_game_over() {
-  var score = 0;
-  for (var i = 0; i < pipes.length; i++)
-    if (pipes[i].x < bird.x) score = score + 0.5;
-  ctx.font = '30px Arial';
-  ctx.fillStyle = 'red';
-  ctx.textAlign = 'center';
-  ctx.fillText('Game Over', myCanvas.width / 2, 100);
-  ctx.fillText('Score: ' + score, myCanvas.width / 2, 150);
-  ctx.font = '20px Arial';
-  ctx.fillText('Click, touch, or press to play again', myCanvas.width / 2, 300);
-}
-function display_bar_running_along_bottom() {
-  if (bottom_bar_offset < -23) bottom_bar_offset = 0;
-  ctx.drawImage(
-    bottom_bar,
-    bottom_bar_offset,
-    myCanvas.height - bottom_bar.height
-  );
-}
-function reset_game() {
-  bird.y = myCanvas.height / 2;
-  bird.angle = 0;
-  pipes = []; // erase all the pipes from the array
-  add_all_my_pipes(); // and load them back in their starting positions
-}
-function add_all_my_pipes() {
-  add_pipe(500, 100, 140);
-  add_pipe(800, 50, 140);
-  add_pipe(1000, 250, 140);
-  add_pipe(1200, 150, 120);
-  add_pipe(1600, 100, 120);
-  add_pipe(1800, 150, 120);
-  add_pipe(2000, 200, 120);
-  add_pipe(2200, 250, 120);
-  add_pipe(2400, 30, 100);
-  add_pipe(2700, 300, 100);
-  add_pipe(3000, 100, 80);
-  add_pipe(3300, 250, 80);
-  add_pipe(3600, 50, 60);
-  var finish_line = new MySprite('http://s2js.com/img/etc/flappyend.png');
-  finish_line.x = 3900;
-  finish_line.velocity_x = pipe_speed;
-  pipes.push(finish_line);
-}
-var pipe_piece = new Image();
-pipe_piece.onload = add_all_my_pipes;
-pipe_piece.src = 'http://s2js.com/img/etc/flappypipe.png';
-function Do_a_Frame() {
-  ctx.clearRect(0, 0, myCanvas.width, myCanvas.height);
-  bird.Do_Frame_Things();
-  display_bar_running_along_bottom();
-  switch (game_mode) {
-    case 'prestart': {
-      display_intro_instructions();
-      break;
+class Enemy {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.width = 50;
+        this.height = 50;
     }
-    case 'running': {
-      time_game_last_running = new Date();
-      bottom_bar_offset = bottom_bar_offset + pipe_speed;
-      show_the_pipes();
-      make_bird_tilt_appropriately();
-      make_bird_slow_and_fall();
-      check_for_end_game();
-      break;
-    }
-    case 'over': {
-      make_bird_slow_and_fall();
-      display_game_over();
-      break;
-    }
-  }
-}
-var bottom_bar = new Image();
-bottom_bar.src = 'http://s2js.com/img/etc/flappybottom.png';
 
-var bird = new MySprite('http://s2js.com/img/etc/flappybird.png');
-bird.x = myCanvas.width / 3;
-bird.y = myCanvas.height / 2;
+    draw() {
+        ctx.fillStyle = 'red';
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+    }
+}
 
-setInterval(Do_a_Frame, 1000 / FPS);
+// Define levels with increasing difficulty
+const levels = [
+    // Easy levels
+    { id: 1, enemies: 5, obstacles: 0 },
+    { id: 2, enemies: 7, obstacles: 1 },
+    { id: 3, enemies: 10, obstacles: 2 },
+    // Medium levels
+    { id: 4, enemies: 15, obstacles: 3 },
+    { id: 5, enemies: 20, obstacles: 4 },
+    { id: 6, enemies: 25, obstacles: 5 },
+    // Hard levels
+    { id: 7, enemies: 30, obstacles: 6 },
+    { id: 8, enemies: 35, obstacles: 7 },
+    { id: 9, enemies: 40, obstacles: 8 },
+    // Additional levels
+    { id: 10, enemies: 45, obstacles: 9 },
+    { id: 11, enemies: 50, obstacles: 10 },
+    { id: 12, enemies: 55, obstacles: 11 },
+    { id: 13, enemies: 60, obstacles: 12 },
+    { id: 14, enemies: 65, obstacles: 13 },
+    { id: 15, enemies: 70, obstacles: 14 },
+    { id: 16, enemies: 75, obstacles: 15 },
+    { id: 17, enemies: 80, obstacles: 16 },
+    { id: 18, enemies: 85, obstacles: 17 },
+    { id: 19, enemies: 90, obstacles: 18 },
+    { id: 20, enemies: 95, obstacles: 19 },
+    { id: 21, enemies: 100, obstacles: 20 },
+    { id: 22, enemies: 105, obstacles: 21 },
+    { id: 23, enemies: 110, obstacles: 22 },
+    { id: 24, enemies: 115, obstacles: 23 },
+    { id: 25, enemies: 120, obstacles: 24 },
+    { id: 26, enemies: 125, obstacles: 25 },
+    { id: 27, enemies: 130, obstacles: 26 },
+    { id: 28, enemies: 135, obstacles: 27 },
+    { id: 29, enemies: 140, obstacles: 28 },
+    { id: 30, enemies: 145, obstacles: 29 },
+];
+
+// Initialize player and current level
+let player = new Player(100, 100);
+let currentLevel = levels;
+
+// Function to generate level content based on level data
+function generateLevel(levelData) {
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw player
+    player.draw();
+
+    // Draw enemies and obstacles based on level data
+    for (let i = 0; i < levelData.enemies; i++) {
+        const enemy = new Enemy(Math.random() * (canvas.width - 50), Math.random() * (canvas.height - 50));
+        enemy.draw();
+    }
+
+    for (let i = 0; i < levelData.obstacles; i++) {
+        // Draw obstacles (e.g., walls, traps)
+        ctx.fillStyle = 'gray';
+        ctx.fillRect(Math.random() * (canvas.width - 50), Math.random() * (canvas.height - 50), 50, 50);
+    }
+}
+
+// Draw initial level
+generateLevel(currentLevel);
+
+// Update level on user progress
+document.addEventListener('keydown', (e) => {
+    if (e.key === ' ') { // Example: Press space to advance level
+        const currentIndex = levels.indexOf(currentLevel);
+        if (currentIndex < levels.length - 1) {
+            currentLevel = levels[currentIndex + 1];
+            generateLevel(currentLevel);
+        }
+    }
+
+    // Handle player movement
+    switch (e.key) {
+        case 'ArrowUp':
+            player.y -= 10;
+            break;
+        case 'ArrowDown':
+            player.y += 10;
+            break;
+        case 'ArrowLeft':
+            player.x -= 10;
+            break;
+        case 'ArrowRight':
+            player.x += 10;
+            break;
+    }
+
+    // Redraw everything after movement
+    generateLevel(currentLevel);
+});
+
+// Main game loop
+function update() {
+    requestAnimationFrame(update);
+}
+
+// Start the game
+update();

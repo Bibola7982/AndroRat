@@ -1,10 +1,8 @@
 body {
-  font-family: 'Pacifico';
-  display: flex;
-  justify-content: center;
+    margin: 0;
+    background-color: #f0f0f0;
 }
 
-canvas {
-  border: 1x solid #0a3cda;
-  margin: 10px;
+#gameCanvas {
+    border: 1px solid black;
 }
